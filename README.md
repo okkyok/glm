@@ -6,6 +6,8 @@ A command-line interface for launching Claude Code with GLM (ChatGLM) settings v
 
 - 🚀 **Session-Based Launch**: Launch Claude with GLM settings temporarily (no persistent config changes)
 - 🎯 **Model Selection**: Choose different GLM models at launch time (glm-4.7, glm-4.6, glm-4.5, glm-4.5-air, etc.)
+- 🔀 **Flag Passthrough**: Pass any claude CLI flags directly through glm (e.g., `--allowedTools`, `--verbose`)
+- ⚡ **YOLO Mode**: Skip permission prompts with `--yolo` flag for faster workflows
 - 📦 **Auto-Install**: Install Claude Code with built-in npm dependency checking
 - 🔄 **Auto-Update**: Check for and install updates with interactive update command
 - ⚙️ **Token Management**: Securely manage your authentication token
@@ -23,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/xqsit94/glm/main/install.sh | bash
 ```bash
 # Create user bin directory and download GLM CLI
 mkdir -p ~/.local/bin
-curl -L -o ~/.local/bin/glm "https://github.com/xqsit94/glm/releases/download/v1.1.0/glm-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/')"
+curl -L -o ~/.local/bin/glm "https://github.com/xqsit94/glm/releases/download/v1.2.0/glm-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/')"
 chmod +x ~/.local/bin/glm
 
 # Add to PATH (one-time setup)
@@ -108,6 +110,19 @@ glm --model glm-4.5-air
 glm -m glm-4.5-air
 ```
 
+Launch Claude in YOLO mode (skip permission prompts):
+```bash
+glm --yolo
+glm --yolo --model glm-4.5-air
+```
+
+Pass additional flags directly to claude:
+```bash
+glm --allowedTools "Bash,Read,Write"
+glm --verbose
+glm --yolo --allowedTools "Bash,Read"
+```
+
 **How it works:**
 - Sets temporary environment variables for the Claude session
 - No persistent changes to Claude's configuration files
@@ -170,6 +185,8 @@ glm update --help
 | Command | Description | Example |
 |---------|-------------|---------|
 | `glm` | Launch Claude with GLM (temporary config) | `glm --model glm-4.7` |
+| `glm --yolo` | Launch with permission prompts skipped | `glm --yolo` |
+| `glm --<flag>` | Pass any flag through to claude | `glm --allowedTools "Bash"` |
 | `glm install claude` | Install Claude Code | `glm install claude` |
 | `glm token set` | Set authentication token | `glm token set` |
 | `glm token show` | Show current token (masked) | `glm token show` |
@@ -232,6 +249,12 @@ glm
 
 # Launch with specific model
 glm --model glm-4.5-air
+
+# Launch in YOLO mode (skip permission prompts)
+glm --yolo
+
+# Pass additional flags to claude
+glm --allowedTools "Bash,Read,Write"
 
 # Use Claude without GLM
 claude
