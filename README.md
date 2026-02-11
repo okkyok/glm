@@ -19,16 +19,17 @@ A command-line interface for launching Claude Code with GLM (ChatGLM) settings v
 `curl | bash` is convenient, but not the safest distribution path.
 
 **Automatic installer:**
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xqsit94/glm/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/okkyok/glm/main/install.sh | bash
 ```
 
 ### Recommended Install (Manual + Checksum Verification)
 
 ```bash
 # 1) Download binary and checksums from the release page
-curl -fL -o glm-darwin-arm64 "https://github.com/xqsit94/glm/releases/download/v1.2.0/glm-darwin-arm64"
-curl -fL -o checksums.txt "https://github.com/xqsit94/glm/releases/download/v1.2.0/checksums.txt"
+curl -fL -o glm-darwin-arm64 "https://github.com/okkyok/glm/releases/download/v1.2.0/glm-darwin-arm64"
+curl -fL -o checksums.txt "https://github.com/okkyok/glm/releases/download/v1.2.0/checksums.txt"
 
 # 2) Verify checksum (macOS)
 grep " glm-darwin-arm64$" checksums.txt | shasum -a 256 -c
@@ -39,10 +40,11 @@ mv glm-darwin-arm64 ~/.local/bin/glm
 ```
 
 **Alternative - Manual Quick Install:**
+
 ```bash
 # Create user bin directory and download GLM CLI
 mkdir -p ~/.local/bin
-curl -L -o ~/.local/bin/glm "https://github.com/xqsit94/glm/releases/download/v1.2.0/glm-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/')"
+curl -L -o ~/.local/bin/glm "https://github.com/okkyok/glm/releases/download/v1.2.0/glm-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/')"
 chmod +x ~/.local/bin/glm
 
 # Add to PATH (one-time setup)
@@ -51,6 +53,7 @@ source ~/.bashrc
 ```
 
 Both methods will:
+
 - Detect your operating system and architecture
 - Download the latest binary release
 - Install to your user directory
@@ -60,7 +63,7 @@ Both methods will:
 
 #### Option 1: Download Pre-built Binary
 
-1. Go to the [releases page](https://github.com/xqsit94/glm/releases)
+1. Go to the [releases page](https://github.com/okkyok/glm/releases)
 2. Download the binary for your platform:
    - macOS Intel: `glm-darwin-amd64`
    - macOS Apple Silicon: `glm-darwin-arm64`
@@ -75,11 +78,12 @@ Both methods will:
 #### Option 2: Build from Source
 
 **Prerequisites:**
+
 - Go 1.24 or later
 - Your GLM API token
 
 ```bash
-git clone https://github.com/xqsit94/glm.git
+git clone https://github.com/okkyok/glm.git
 cd glm
 go mod tidy
 go build -o glm
@@ -91,7 +95,9 @@ sudo mv glm /usr/local/bin/
 The GLM CLI supports multiple ways to provide your Anthropic API token:
 
 ### Option 1: Environment Variable (Recommended)
+
 Prefer environment variables so tokens are not persisted to disk:
+
 ```bash
 export ANTHROPIC_AUTH_TOKEN="your_token_here"
 glm
@@ -100,18 +106,23 @@ glm
 `GLM_TOKEN` is also supported as a fallback variable.
 
 ### Option 2: Interactive Setup (TTY only)
+
 On first run, the CLI can prompt you to set up your token:
+
 ```bash
 glm  # Will prompt for token if not found
 ```
 
 ### Option 3: Manual Token Setup
+
 ```bash
 glm token set  # Enter your token securely
 ```
 
 ### Non-interactive environments (CI/script)
+
 For CI and scripts, disable prompts and use env vars:
+
 ```bash
 export GLM_NON_INTERACTIVE=1
 export ANTHROPIC_AUTH_TOKEN="your_token_here"
@@ -119,6 +130,7 @@ glm --non-interactive
 ```
 
 **Token Priority Order:**
+
 1. Environment variable `ANTHROPIC_AUTH_TOKEN`
 2. Environment variable `GLM_TOKEN`
 3. Config file `~/.glm/config.json`
@@ -129,28 +141,33 @@ glm --non-interactive
 ### Launch Claude with GLM (Primary Usage)
 
 Launch Claude with the default model (glm-4.7):
+
 ```bash
 glm
 ```
 
 Launch Claude with a specific model:
+
 ```bash
 glm --model glm-4.5-air
 glm -m glm-4.5-air
 ```
 
 Launch Claude in YOLO mode (skip permission prompts):
+
 ```bash
 glm --yolo
 glm --yolo --model glm-4.5-air
 ```
 
 Disable prompts explicitly (for scripts/automation):
+
 ```bash
 glm --non-interactive
 ```
 
 Pass additional flags directly to claude:
+
 ```bash
 glm --allowedTools "Bash,Read,Write"
 glm --verbose
@@ -158,6 +175,7 @@ glm --yolo --allowedTools "Bash,Read"
 ```
 
 **How it works:**
+
 - Sets temporary environment variables for the Claude session
 - No persistent changes to Claude's configuration files
 - Settings only apply to the launched Claude session
@@ -166,6 +184,7 @@ glm --yolo --allowedTools "Bash,Read"
 ### Install Claude Code
 
 Install Claude Code via npm (with automatic Node.js detection):
+
 ```bash
 glm install claude
 ```
@@ -173,16 +192,19 @@ glm install claude
 ### Manage Authentication Token
 
 Set your API token:
+
 ```bash
 glm token set
 ```
 
 View current token (masked):
+
 ```bash
 glm token show
 ```
 
 Clear stored token:
+
 ```bash
 glm token clear
 ```
@@ -190,16 +212,19 @@ glm token clear
 ### Update GLM
 
 Check for updates:
+
 ```bash
 glm update --check
 ```
 
 Update to latest version:
+
 ```bash
 glm update
 ```
 
 Update without confirmation:
+
 ```bash
 glm update --force
 ```
@@ -207,6 +232,7 @@ glm update --force
 `glm update` verifies SHA-256 checksums from release `checksums.txt` before install.
 If a release does not publish checksums, update will fail by default.
 You can bypass this only if you accept the risk:
+
 ```bash
 GLM_ALLOW_UNVERIFIED=1 glm update
 ```
@@ -214,6 +240,7 @@ GLM_ALLOW_UNVERIFIED=1 glm update
 ### Help
 
 Get help for any command:
+
 ```bash
 glm --help
 glm install --help
@@ -223,27 +250,27 @@ glm update --help
 
 ## Commands Reference
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `glm` | Launch Claude with GLM (temporary config) | `glm --model glm-4.7` |
-| `glm --yolo` | Launch with permission prompts skipped | `glm --yolo` |
-| `glm --<flag>` | Pass any flag through to claude | `glm --allowedTools "Bash"` |
-| `glm install claude` | Install Claude Code | `glm install claude` |
-| `glm token set` | Set authentication token | `glm token set` |
-| `glm token show` | Show current token (masked) | `glm token show` |
-| `glm token clear` | Clear stored token | `glm token clear` |
-| `glm update` | Update GLM to latest version | `glm update` |
-| `glm update --check` | Check for updates only | `glm update --check` |
+| Command              | Description                               | Example                     |
+| -------------------- | ----------------------------------------- | --------------------------- |
+| `glm`                | Launch Claude with GLM (temporary config) | `glm --model glm-4.7`       |
+| `glm --yolo`         | Launch with permission prompts skipped    | `glm --yolo`                |
+| `glm --<flag>`       | Pass any flag through to claude           | `glm --allowedTools "Bash"` |
+| `glm install claude` | Install Claude Code                       | `glm install claude`        |
+| `glm token set`      | Set authentication token                  | `glm token set`             |
+| `glm token show`     | Show current token (masked)               | `glm token show`            |
+| `glm token clear`    | Clear stored token                        | `glm token clear`           |
+| `glm update`         | Update GLM to latest version              | `glm update`                |
+| `glm update --check` | Check for updates only                    | `glm update --check`        |
 
 ### Deprecated Commands
 
 These commands are deprecated and now no-op. Use `glm` with `--model` flag instead:
 
-| Command | Status | Replacement |
-|---------|--------|-------------|
-| `glm enable` | ⚠️ Deprecated (no-op) | Use `glm` instead |
+| Command       | Status                | Replacement           |
+| ------------- | --------------------- | --------------------- |
+| `glm enable`  | ⚠️ Deprecated (no-op) | Use `glm` instead     |
 | `glm disable` | ⚠️ Deprecated (no-op) | Run `claude` directly |
-| `glm set` | ❌ Removed | Use `glm --model X` |
+| `glm set`     | ❌ Removed            | Use `glm --model X`   |
 
 ## Available Models
 
@@ -256,6 +283,7 @@ These commands are deprecated and now no-op. Use `glm` with `--model` flag inste
 ## Configuration Files
 
 The CLI manages the following files:
+
 - `~/.glm/config.json` - Your authentication token and preferences
 
 `~/.glm/config.json` is written with restrictive permissions (`0600`).
@@ -282,7 +310,7 @@ For higher security, prefer environment variables so no token is persisted.
 
 ```bash
 # Install GLM CLI
-curl -fsSL https://raw.githubusercontent.com/xqsit94/glm/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/okkyok/glm/main/install.sh | bash
 
 # First time setup
 glm install claude        # Install Claude Code
@@ -315,39 +343,50 @@ glm update
 ### Installation Issues
 
 #### curl not found
+
 If you get a "curl not found" error:
+
 - **macOS**: Install Xcode Command Line Tools: `xcode-select --install`
 - **Linux**: Install curl: `sudo apt install curl` (Ubuntu/Debian) or `sudo yum install curl` (CentOS/RHEL)
 
 #### Permission denied during installation
+
 If the installer fails with permission errors:
+
 ```bash
 # Download and run manually with explicit sudo
-curl -fsSL https://raw.githubusercontent.com/xqsit94/glm/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/okkyok/glm/main/install.sh -o install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
 
 #### Binary not found for your platform
+
 If no binary is available for your platform:
-1. Check the [releases page](https://github.com/xqsit94/glm/releases) for available binaries
+
+1. Check the [releases page](https://github.com/okkyok/glm/releases) for available binaries
 2. Build from source using the manual installation instructions
 
 ### Runtime Issues
 
 #### npm not found
+
 If you get an npm error when running `glm install claude`:
+
 1. Install Node.js from https://nodejs.org/
 2. Restart your terminal
 3. Run `glm install claude` again
 
 #### Authentication token not found
+
 Set up your token using any of these methods:
+
 - Set environment variable (recommended): `export ANTHROPIC_AUTH_TOKEN="your_token"`
 - Or set fallback variable: `export GLM_TOKEN="your_token"`
 - `glm token set` (TTY only)
 
 In CI/non-interactive shells, prompts are disabled:
+
 ```bash
 export GLM_NON_INTERACTIVE=1
 export ANTHROPIC_AUTH_TOKEN="your_token"
@@ -355,13 +394,17 @@ glm --non-interactive
 ```
 
 #### Claude still using default settings
+
 The session-based configuration means:
+
 - Settings only apply to Claude sessions launched via `glm`
 - If you run `claude` directly, it uses default settings
 - This is intentional - use `glm` to launch with GLM settings
 
 #### Command not found after installation
+
 If `glm` command is not found after installation:
+
 1. Check if `/usr/local/bin` or `~/.local/bin` is in your PATH: `echo $PATH`
 2. Add to PATH if missing (add to `.bashrc`, `.zshrc`, etc.):
    ```bash
@@ -370,7 +413,9 @@ If `glm` command is not found after installation:
 3. Restart your terminal or run: `source ~/.bashrc` (or `.zshrc`)
 
 #### Update fails with permission error
+
 If `glm update` fails with permission denied:
+
 ```bash
 sudo glm update
 ```

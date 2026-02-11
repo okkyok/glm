@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/xqsit94/glm/internal/updater"
+	"github.com/okkyok/glm/internal/updater"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"

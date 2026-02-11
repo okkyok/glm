@@ -1,4 +1,4 @@
-module github.com/xqsit94/glm
+module github.com/okkyok/glm
 
 go 1.24.0
 

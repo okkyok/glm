@@ -6,7 +6,7 @@ set -e
 # This script detects the OS and architecture, downloads the appropriate binary,
 # and installs it to ~/.local/bin
 
-REPO="xqsit94/glm"
+REPO="okkyok/glm"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="glm"
 ALLOW_UNVERIFIED="${GLM_ALLOW_UNVERIFIED:-0}"

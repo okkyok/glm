@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/xqsit94/glm/internal/config"
-	"github.com/xqsit94/glm/pkg/paths"
+	"github.com/okkyok/glm/internal/config"
+	"github.com/okkyok/glm/pkg/paths"
 
 	"golang.org/x/term"
 )
