@@ -3,9 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/xqsit94/glm/internal/glm"
-	"github.com/xqsit94/glm/internal/token"
-
 	"github.com/spf13/cobra"
 )
 
@@ -17,21 +14,13 @@ func EnableCmd() *cobra.Command {
 		Deprecated: "GLM now uses temporary session-based configuration. Just run 'glm' to launch Claude with GLM.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("⚠️  Warning: This command is deprecated.")
-			fmt.Println("💡 Just run 'glm' to launch Claude with GLM using temporary configuration.")
-			fmt.Println()
-
-			model, _ := cmd.Flags().GetString("model")
-
-			authToken, err := token.Get()
-			if err != nil {
-				return err
-			}
-
-			return glm.Enable(model, authToken)
+			fmt.Println("💡 'glm enable' is now a no-op.")
+			fmt.Println("💡 Just run 'glm' to launch Claude with temporary session-based GLM configuration.")
+			return nil
 		},
 	}
 
-	cmd.Flags().StringP("model", "m", token.DefaultModel, fmt.Sprintf("GLM model to use (default: %s)", token.DefaultModel))
+	cmd.Flags().StringP("model", "m", "", "Deprecated flag (no effect)")
 
 	return cmd
 }

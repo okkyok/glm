@@ -9,6 +9,7 @@ set -e
 REPO="xqsit94/glm"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="glm"
+ALLOW_UNVERIFIED="${GLM_ALLOW_UNVERIFIED:-0}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -62,7 +63,7 @@ detect_arch() {
 
 # Get latest release version
 get_latest_version() {
-    curl -s "https://api.github.com/repos/$REPO/releases/latest" | \
+    curl --proto '=https' --tlsv1.2 -fsSL "https://api.github.com/repos/$REPO/releases/latest" | \
         grep '"tag_name":' | \
         sed -E 's/.*"([^"]+)".*/\1/' | \
         head -n1
@@ -77,11 +78,70 @@ check_binary_exists() {
     local url="https://github.com/$REPO/releases/download/$version/$binary_name"
 
     # GitHub releases return 302 redirect, not 200 OK
-    if curl -s --head "$url" | head -n 1 | grep -qE "(200|302)"; then
+    if curl --proto '=https' --tlsv1.2 -sS --head --location "$url" | head -n 1 | grep -qE "(200|302)"; then
         return 0
     else
         return 1
     fi
+}
+
+sha256_cmd() {
+    if command -v shasum >/dev/null 2>&1; then
+        echo "shasum -a 256"
+    elif command -v sha256sum >/dev/null 2>&1; then
+        echo "sha256sum"
+    else
+        return 1
+    fi
+}
+
+verify_checksum() {
+    local file=$1
+    local version=$2
+    local binary_name=$3
+    local checksum_url="https://github.com/$REPO/releases/download/$version/checksums.txt"
+    local checksum_file
+    checksum_file=$(mktemp "/tmp/glm-checksums.XXXXXX")
+
+    if ! curl --proto '=https' --tlsv1.2 -fsSL -o "$checksum_file" "$checksum_url"; then
+        rm -f "$checksum_file"
+        if [[ "$ALLOW_UNVERIFIED" == "1" ]]; then
+            log_warning "checksums.txt not found for $version. Continuing because GLM_ALLOW_UNVERIFIED=1."
+            return 0
+        fi
+        log_error "Checksum file is unavailable for $version."
+        log_error "Set GLM_ALLOW_UNVERIFIED=1 only if you accept the security risk."
+        exit 1
+    fi
+
+    local expected
+    expected=$(awk -v f="$binary_name" '$2 == f {print $1}' "$checksum_file" | head -n1)
+    rm -f "$checksum_file"
+    if [[ -z "$expected" ]]; then
+        if [[ "$ALLOW_UNVERIFIED" == "1" ]]; then
+            log_warning "No checksum entry for $binary_name. Continuing because GLM_ALLOW_UNVERIFIED=1."
+            return 0
+        fi
+        log_error "No checksum entry found for $binary_name in checksums.txt."
+        exit 1
+    fi
+
+    local sha_cmd
+    if ! sha_cmd=$(sha256_cmd); then
+        log_error "No SHA-256 tool found (shasum/sha256sum)."
+        exit 1
+    fi
+
+    local actual
+    actual=$($sha_cmd "$file" | awk '{print $1}')
+    if [[ "$actual" != "$expected" ]]; then
+        log_error "Checksum verification failed for $binary_name."
+        log_error "Expected: $expected"
+        log_error "Actual:   $actual"
+        exit 1
+    fi
+
+    log_success "Checksum verified for $binary_name"
 }
 
 # Download and install binary
@@ -91,15 +151,18 @@ install_binary() {
     local arch=$3
     local binary_name="glm-$os-$arch"
     local url="https://github.com/$REPO/releases/download/$version/$binary_name"
-    local temp_file="/tmp/$binary_name"
+    local temp_file
+    temp_file=$(mktemp "/tmp/${binary_name}.XXXXXX")
 
     log_info "Downloading GLM CLI $version for $os/$arch..."
     log_info "URL: $url"
 
-    if ! curl -L -o "$temp_file" "$url"; then
+    if ! curl --proto '=https' --tlsv1.2 -fL -o "$temp_file" "$url"; then
         log_error "Failed to download binary from $url"
         exit 1
     fi
+
+    verify_checksum "$temp_file" "$version" "$binary_name"
 
     # Make binary executable
     chmod +x "$temp_file"
@@ -165,6 +228,10 @@ main() {
         log_error "curl is required but not installed."
         exit 1
     fi
+    if ! command -v awk >/dev/null 2>&1; then
+        log_error "awk is required but not installed."
+        exit 1
+    fi
 
     # Detect system
     OS=$(detect_os)
@@ -208,7 +275,7 @@ main() {
     echo "Quick start:"
     echo "  glm --help          # Show help"
     echo "  glm token set       # Set your API token"
-    echo "  glm enable          # Enable GLM settings"
+    echo "  glm                 # Launch Claude with GLM (session-based)"
     echo "  glm install claude  # Install Claude Code"
     echo ""
 }

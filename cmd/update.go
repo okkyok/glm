@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/xqsit94/glm/internal/updater"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 func UpdateCmd() *cobra.Command {
@@ -64,6 +66,9 @@ func runUpdate(checkOnly, force bool) error {
 	}
 
 	if !force {
+		if isNonInteractiveUpdate() || !term.IsTerminal(int(os.Stdin.Fd())) {
+			return fmt.Errorf("non-interactive update requires --force")
+		}
 		fmt.Printf("Would you like to update to %s? (y/N): ", info.LatestVersion)
 		var response string
 		fmt.Scanln(&response)
@@ -103,6 +108,13 @@ func runUpdate(checkOnly, force bool) error {
 	}
 
 	fmt.Println("\n✅ Download complete!")
+	fmt.Println("🔐 Verifying SHA-256 checksum...")
+
+	if err := updater.VerifyReleaseChecksum(binaryPath, info.LatestVersion, osName, arch); err != nil {
+		fmt.Printf("❌ Failed to verify release checksum: %v\n", err)
+		fmt.Println("💡 If you must proceed without checksum verification, set GLM_ALLOW_UNVERIFIED=1 and retry.")
+		return err
+	}
 
 	fmt.Println("🔧 Installing update...")
 
@@ -124,6 +136,11 @@ func runUpdate(checkOnly, force bool) error {
 	fmt.Println("🎉 GLM has been updated! The new version is now active.")
 
 	return nil
+}
+
+func isNonInteractiveUpdate() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("GLM_NON_INTERACTIVE")))
+	return v == "1" || v == "true" || v == "yes"
 }
 
 func showProgress(percent int, downloaded, total int64) {

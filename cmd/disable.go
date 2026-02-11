@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/xqsit94/glm/internal/glm"
-
 	"github.com/spf13/cobra"
 )
 
@@ -16,11 +14,9 @@ func DisableCmd() *cobra.Command {
 		Deprecated: "GLM now uses temporary session-based configuration. No need to disable - just run 'claude' directly.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("⚠️  Warning: This command is deprecated.")
-			fmt.Println("💡 GLM now uses temporary session-based configuration.")
-			fmt.Println("💡 To use Claude without GLM, just run 'claude' directly instead of 'glm'.")
-			fmt.Println()
-
-			return glm.Disable()
+			fmt.Println("💡 'glm disable' is now a no-op.")
+			fmt.Println("💡 To use Claude without GLM, run 'claude' directly.")
+			return nil
 		},
 	}
 }

@@ -1,7 +1,10 @@
 package updater
 
 import (
+	"bufio"
+	"crypto/sha256"
 	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -161,6 +164,82 @@ func VerifyBinary(path string) error {
 	}
 
 	return nil
+}
+
+func VerifyReleaseChecksum(path, version, osName, arch string) error {
+	binaryName := fmt.Sprintf("glm-%s-%s", osName, arch)
+	expected, err := fetchExpectedChecksum(version, binaryName)
+	if err != nil {
+		if allowUnverified() {
+			return nil
+		}
+		return err
+	}
+
+	actual, err := calculateSHA256(path)
+	if err != nil {
+		return err
+	}
+
+	if !strings.EqualFold(actual, expected) {
+		return fmt.Errorf("checksum verification failed for %s", binaryName)
+	}
+
+	return nil
+}
+
+func fetchExpectedChecksum(version, binaryName string) (string, error) {
+	checksumURL := fmt.Sprintf("https://github.com/%s/releases/download/%s/checksums.txt", githubRepo, version)
+	resp, err := http.Get(checksumURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch checksums: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("checksums.txt is unavailable for %s (status %d)", version, resp.StatusCode)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			continue
+		}
+		if parts[1] == binaryName {
+			return parts[0], nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("failed reading checksums.txt: %v", err)
+	}
+
+	return "", fmt.Errorf("no checksum found for %s", binaryName)
+}
+
+func calculateSHA256(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open downloaded binary: %v", err)
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("failed to hash downloaded binary: %v", err)
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func allowUnverified() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("GLM_ALLOW_UNVERIFIED")))
+	return v == "1" || v == "true" || v == "yes"
 }
 
 func InstallUpdate(newBinaryPath string) error {

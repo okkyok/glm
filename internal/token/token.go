@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/xqsit94/glm/internal/config"
 	"github.com/xqsit94/glm/pkg/paths"
@@ -18,6 +17,9 @@ func Get() (string, error) {
 	if token := os.Getenv("ANTHROPIC_AUTH_TOKEN"); token != "" {
 		return token, nil
 	}
+	if token := os.Getenv("GLM_TOKEN"); token != "" {
+		return token, nil
+	}
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -27,11 +29,17 @@ func Get() (string, error) {
 		return cfg.AnthropicAuthToken, nil
 	}
 
+	if !canPromptForToken() {
+		return "", fmt.Errorf("authentication token is required in non-interactive mode. Set ANTHROPIC_AUTH_TOKEN (or GLM_TOKEN) and retry, or run 'glm token set' in a TTY")
+	}
+
 	fmt.Println("🔐 No authentication token found.")
 	fmt.Print("Would you like to set up your token now? (y/n): ")
 
 	var response string
-	fmt.Scanln(&response)
+	if _, err := fmt.Scanln(&response); err != nil {
+		return "", fmt.Errorf("failed to read input: %v", err)
+	}
 
 	if strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
 		if err := Set(); err != nil {
@@ -44,9 +52,13 @@ func Get() (string, error) {
 }
 
 func Set() error {
+	if !canPromptForToken() {
+		return fmt.Errorf("cannot run interactive token setup in non-interactive mode. Set ANTHROPIC_AUTH_TOKEN (or GLM_TOKEN) instead")
+	}
+
 	fmt.Print("Enter your Anthropic API token: ")
 
-	tokenBytes, err := term.ReadPassword(int(syscall.Stdin))
+	tokenBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return fmt.Errorf("failed to read token: %v", err)
 	}
@@ -111,4 +123,16 @@ func Clear() error {
 
 	fmt.Println("✅ Authentication token has been cleared successfully!")
 	return nil
+}
+
+func canPromptForToken() bool {
+	if isNonInteractive() {
+		return false
+	}
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+func isNonInteractive() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("GLM_NON_INTERACTIVE")))
+	return v == "1" || v == "true" || v == "yes"
 }

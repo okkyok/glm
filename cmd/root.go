@@ -19,6 +19,7 @@ const (
 func RootCmd() *cobra.Command {
 	var model string
 	var yolo bool
+	var nonInteractive bool
 
 	cmd := &cobra.Command{
 		Use:     "glm",
@@ -26,12 +27,13 @@ func RootCmd() *cobra.Command {
 		Long:    "A CLI tool to launch Claude with GLM settings using temporary session-based configuration",
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDefaultAction(cmd, model, yolo)
+			return runDefaultAction(cmd, model, yolo, nonInteractive)
 		},
 	}
 
 	cmd.Flags().StringVarP(&model, "model", "m", token.DefaultModel, "GLM model to use for this session")
 	cmd.Flags().BoolVar(&yolo, "yolo", false, "Skip permission prompts (--dangerously-skip-permissions)")
+	cmd.Flags().BoolVar(&nonInteractive, "non-interactive", false, "Disable all interactive prompts (same as GLM_NON_INTERACTIVE=1)")
 	cmd.FParseErrWhitelist.UnknownFlags = true
 
 	return cmd
@@ -87,8 +89,14 @@ func extractUnknownFlags(cmd *cobra.Command) []string {
 	return unknown
 }
 
-func runDefaultAction(cmd *cobra.Command, model string, yolo bool) error {
+func runDefaultAction(cmd *cobra.Command, model string, yolo bool, nonInteractive bool) error {
 	fmt.Println("🚀 Launching Claude with GLM...")
+
+	if nonInteractive {
+		if err := os.Setenv("GLM_NON_INTERACTIVE", "1"); err != nil {
+			return fmt.Errorf("failed to set non-interactive mode: %v", err)
+		}
+	}
 
 	authToken, err := token.Get()
 	if err != nil {

@@ -14,11 +14,28 @@ A command-line interface for launching Claude Code with GLM (ChatGLM) settings v
 
 ## Installation
 
-### Quick Install (Recommended)
+### Quick Install (Fast, Less Secure)
 
-**Automatic Installer:**
+`curl | bash` is convenient, but not the safest distribution path.
+
+**Automatic installer:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xqsit94/glm/main/install.sh | bash
+```
+
+### Recommended Install (Manual + Checksum Verification)
+
+```bash
+# 1) Download binary and checksums from the release page
+curl -fL -o glm-darwin-arm64 "https://github.com/xqsit94/glm/releases/download/v1.2.0/glm-darwin-arm64"
+curl -fL -o checksums.txt "https://github.com/xqsit94/glm/releases/download/v1.2.0/checksums.txt"
+
+# 2) Verify checksum (macOS)
+grep " glm-darwin-arm64$" checksums.txt | shasum -a 256 -c
+
+# 3) Install
+chmod +x glm-darwin-arm64
+mv glm-darwin-arm64 ~/.local/bin/glm
 ```
 
 **Alternative - Manual Quick Install:**
@@ -73,27 +90,39 @@ sudo mv glm /usr/local/bin/
 
 The GLM CLI supports multiple ways to provide your Anthropic API token:
 
-### Option 1: Interactive Setup (Recommended)
-On first run, the CLI will automatically prompt you to set up your token:
-```bash
-glm  # Will prompt for token if not found
-```
-
-### Option 2: Manual Token Setup
-```bash
-glm token set  # Enter your token securely
-```
-
-### Option 3: Environment Variable
+### Option 1: Environment Variable (Recommended)
+Prefer environment variables so tokens are not persisted to disk:
 ```bash
 export ANTHROPIC_AUTH_TOKEN="your_token_here"
 glm
 ```
 
+`GLM_TOKEN` is also supported as a fallback variable.
+
+### Option 2: Interactive Setup (TTY only)
+On first run, the CLI can prompt you to set up your token:
+```bash
+glm  # Will prompt for token if not found
+```
+
+### Option 3: Manual Token Setup
+```bash
+glm token set  # Enter your token securely
+```
+
+### Non-interactive environments (CI/script)
+For CI and scripts, disable prompts and use env vars:
+```bash
+export GLM_NON_INTERACTIVE=1
+export ANTHROPIC_AUTH_TOKEN="your_token_here"
+glm --non-interactive
+```
+
 **Token Priority Order:**
 1. Environment variable `ANTHROPIC_AUTH_TOKEN`
-2. Config file `~/.glm/config.json`
-3. Interactive prompt
+2. Environment variable `GLM_TOKEN`
+3. Config file `~/.glm/config.json`
+4. Interactive prompt (TTY only, disabled by `GLM_NON_INTERACTIVE=1` or `--non-interactive`)
 
 ## Usage
 
@@ -114,6 +143,11 @@ Launch Claude in YOLO mode (skip permission prompts):
 ```bash
 glm --yolo
 glm --yolo --model glm-4.5-air
+```
+
+Disable prompts explicitly (for scripts/automation):
+```bash
+glm --non-interactive
 ```
 
 Pass additional flags directly to claude:
@@ -170,6 +204,13 @@ Update without confirmation:
 glm update --force
 ```
 
+`glm update` verifies SHA-256 checksums from release `checksums.txt` before install.
+If a release does not publish checksums, update will fail by default.
+You can bypass this only if you accept the risk:
+```bash
+GLM_ALLOW_UNVERIFIED=1 glm update
+```
+
 ### Help
 
 Get help for any command:
@@ -196,12 +237,12 @@ glm update --help
 
 ### Deprecated Commands
 
-These commands still work but are deprecated. Use `glm` with `--model` flag instead:
+These commands are deprecated and now no-op. Use `glm` with `--model` flag instead:
 
 | Command | Status | Replacement |
 |---------|--------|-------------|
-| `glm enable` | ⚠️ Deprecated | Use `glm` instead |
-| `glm disable` | ⚠️ Deprecated | Run `claude` directly |
+| `glm enable` | ⚠️ Deprecated (no-op) | Use `glm` instead |
+| `glm disable` | ⚠️ Deprecated (no-op) | Run `claude` directly |
 | `glm set` | ❌ Removed | Use `glm --model X` |
 
 ## Available Models
@@ -217,7 +258,10 @@ These commands still work but are deprecated. Use `glm` with `--model` flag inst
 The CLI manages the following files:
 - `~/.glm/config.json` - Your authentication token and preferences
 
-**Note:** GLM no longer modifies `~/.claude/settings.json`. All configuration is passed via temporary environment variables.
+`~/.glm/config.json` is written with restrictive permissions (`0600`).
+For higher security, prefer environment variables so no token is persisted.
+
+**Note:** GLM does not modify `~/.claude/settings.json`. All configuration is passed via temporary environment variables.
 
 ## How It Works
 
@@ -228,7 +272,7 @@ The CLI manages the following files:
 
 2. **Session-Based**: Settings only exist for the launched Claude session. No persistent file modifications.
 
-3. **Token Storage**: Your authentication token is securely stored in `~/.glm/config.json` for convenience.
+3. **Token Storage**: Token can be stored in `~/.glm/config.json` (permission `0600`) for convenience, but env vars are recommended for stronger security.
 
 4. **Install**: Checks for npm and installs Claude Code globally.
 
@@ -299,8 +343,16 @@ If you get an npm error when running `glm install claude`:
 
 #### Authentication token not found
 Set up your token using any of these methods:
-- `glm token set` (recommended)
-- Set environment variable: `export ANTHROPIC_AUTH_TOKEN="your_token"`
+- Set environment variable (recommended): `export ANTHROPIC_AUTH_TOKEN="your_token"`
+- Or set fallback variable: `export GLM_TOKEN="your_token"`
+- `glm token set` (TTY only)
+
+In CI/non-interactive shells, prompts are disabled:
+```bash
+export GLM_NON_INTERACTIVE=1
+export ANTHROPIC_AUTH_TOKEN="your_token"
+glm --non-interactive
+```
 
 #### Claude still using default settings
 The session-based configuration means:
@@ -327,25 +379,20 @@ sudo glm update
 
 If you're upgrading from version 1.0.x:
 
-### ⚠️ IMPORTANT: Remove Old Configuration File
+### ⚠️ IMPORTANT: Check Old Configuration File
 
-**You MUST remove the old persistent configuration file to avoid conflicts:**
+Version 1.0.x may have created a persistent `~/.claude/settings.json`.
+Session-based versions do not use this file. If it still contains GLM overrides, `claude` may keep using GLM unexpectedly.
 
 ```bash
-rm -f ~/.claude/settings.json
+cat ~/.claude/settings.json
 ```
 
-**Why this is required:**
-- Version 1.0.x created a persistent `~/.claude/settings.json` file that made Claude always use GLM settings
-- This conflicts with v1.1.0's session-based approach
-- **Without removing this file:** Running `claude` directly will still use GLM settings (not the default)
-- **After removing this file:**
-  - `glm` → Uses GLM settings (temporary, session-based)
-  - `claude` → Uses default Claude settings (no GLM)
+If this file still hard-codes GLM env values and you no longer want that behavior, remove it manually.
 
 ### Other Changes:
 
-1. **Deprecated commands**: `glm enable` and `glm disable` still work but show deprecation warnings
+1. **Deprecated commands**: `glm enable` and `glm disable` are now no-op with warnings
 2. **Removed command**: `glm set` has been removed - use `glm --model X` instead
 3. **New usage**: Just run `glm` to launch Claude with GLM, or `glm --model X` to specify a model
 
